@@ -1,0 +1,126 @@
+#!/usr/local/bin/node
+
+const program = require('commander');
+const opennebula = require('opennebula');
+const config = require('./config');
+var   one;
+
+// define program
+program
+    .version('1.0.0')
+    .option('--list', 'prints all groups')
+    .option('--host [hostname]', 'prints host vars')
+    .parse(process.argv);
+
+// connect to one
+one = new opennebula(config.user+':'+config.token, config.address);
+
+if(program.list){
+    getAll(function(err, groups, hosts) {
+        if(err){
+            console.error(err);
+            process.exit(1);
+        }
+
+        groups["_meta"] = {};
+        groups["_meta"]["hostvars"] = hosts;
+
+        console.log(JSON.stringify(groups, null, 2));
+    })
+}
+
+if(program.host){
+    getAll(function(err, groups, hosts) {
+        if(err){
+            console.error(err);
+            process.exit(1);
+        }
+
+        // check if host exists
+        if(typeof hosts[program.host] === "undefined"){
+            console.error("Host with name %s does't exists!", program.host);
+            process.exit(1);
+        }
+
+        console.log(JSON.stringify(hosts[program.host], null, 2));
+    })
+}
+
+if(!program.list && !program.host){
+    program.help();
+}
+
+function getAll(callback) {
+    var groups = {};
+    var hosts  = {};
+
+    // get all VMs
+    one.getVMs(function (err, data) {
+        if (err) {
+            return callback(err);
+        }
+
+        for (var key in data) {
+            var vm = data[key];
+            var labels = vm.USER_TEMPLATE.LABELS;
+            var exLabels = labels.split(",");
+
+            for (var key2 in exLabels) {
+                var label = exLabels[key2];
+
+                // skip labels
+                if (config.skipLabels.indexOf(label) !== -1) {
+                    continue;
+                }
+
+                // create new group
+                if (typeof groups[label] === "undefined") {
+                    groups[label] = [];
+                }
+
+                var hostname = getHostName(vm);
+
+                // add host to group
+                groups[label].push(hostname);
+
+                // save host and its user template vars
+                hosts[hostname] = vm.USER_TEMPLATE;
+            }
+        }
+
+        callback(null, groups, hosts);
+    });
+}
+
+function getHostName(vm){
+    // get hostname key
+    if (!config.useVmName && config.hostnameUserTemplateVar !== "" && typeof vm.USER_TEMPLATE[config.hostnameUserTemplateVar] !== "undefined") {
+        return vm.USER_TEMPLATE[config.hostnameUserTemplateVar];
+    }
+
+    // not use vm name but hostname user template var is not defined or empty
+    // so get IP
+    if (!config.useVmName) {
+        return getVMIp(vm);
+    }
+
+    // user vm name
+    return vm.NAME;
+}
+
+function getVMIp(vm){
+    var nic = vm.TEMPLATE.NIC;
+
+    if(typeof nic.NETWORK_ID !== "undefined"){
+        nic = Array(nic);
+    }
+
+    for(k in nic){
+        var net = nic[k];
+
+        // return first
+        return net.IP;
+    }
+
+    return false;
+}
