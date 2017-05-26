@@ -14,9 +14,9 @@ program
 // connect to one
 var one = new opennebula(config.user+':'+config.token, config.address);
 
-if(program.list){
+if(program.list) {
     getAll(function(err, groups, hosts) {
-        if(err){
+        if(err) {
             console.error(err);
             process.exit(1);
         }
@@ -28,15 +28,15 @@ if(program.list){
     })
 }
 
-if(program.host){
+if(program.host) {
     getAll(function(err, groups, hosts) {
-        if(err){
+        if(err) {
             console.error(err);
             process.exit(1);
         }
 
         // check if host exists
-        if(typeof hosts[program.host] === "undefined"){
+        if(typeof hosts[program.host] === "undefined") {
             console.error("Host with name %s does't exists!", program.host);
             process.exit(1);
         }
@@ -45,7 +45,7 @@ if(program.host){
     })
 }
 
-if(!program.list && !program.host){
+if(!program.list && !program.host) {
     program.help();
 }
 
@@ -57,6 +57,10 @@ function getAll(callback) {
     one.getVMs(function (err, data) {
         if (err) {
             return callback(err);
+        }
+
+        if(Object.keys(data).length === 0 || typeof data[0] === "undefined") {
+           return callback("No VMs found!");
         }
 
         for (var key in data) {
@@ -87,11 +91,15 @@ function getAll(callback) {
             }
         }
 
+        if(Object.keys(groups).length === 0) {
+            return callback("No VMs with labels found (except skiped one)!");
+        }
+
         callback(null, groups, hosts);
     });
 }
 
-function getHostName(vm){
+function getHostName(vm) {
     // get hostname key
     if (!config.useVmName && config.hostnameUserTemplateVar !== "" && typeof vm.USER_TEMPLATE[config.hostnameUserTemplateVar] !== "undefined") {
         return vm.USER_TEMPLATE[config.hostnameUserTemplateVar];
@@ -107,14 +115,14 @@ function getHostName(vm){
     return vm.NAME;
 }
 
-function getVMIp(vm){
+function getVMIp(vm) {
     var nic = vm.TEMPLATE.NIC;
 
-    if(typeof nic.NETWORK_ID !== "undefined"){
+    if(typeof nic.NETWORK_ID !== "undefined") {
         nic = Array(nic);
     }
 
-    for(k in nic){
+    for(k in nic) {
         var net = nic[k];
 
         // return first
