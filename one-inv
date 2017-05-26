@@ -3,7 +3,6 @@
 const program = require("commander");
 const opennebula = require("opennebula");
 const config = require(process.cwd()+"/config");
-var   one;
 
 // define program
 program
@@ -13,7 +12,7 @@ program
     .parse(process.argv);
 
 // connect to one
-one = new opennebula(config.user+':'+config.token, config.address);
+var one = new opennebula(config.user+':'+config.token, config.address);
 
 if(program.list){
     getAll(function(err, groups, hosts) {
