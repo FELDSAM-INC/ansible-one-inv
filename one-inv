@@ -1,8 +1,8 @@
 #!/usr/local/bin/node
 
-const program = require('commander');
-const opennebula = require('opennebula');
-const config = require('./config');
+const program = require("commander");
+const opennebula = require("opennebula");
+const config = require(process.cwd()+"/config");
 var   one;
 
 // define program
