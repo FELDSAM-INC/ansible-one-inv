@@ -66,28 +66,31 @@ function getAll(callback) {
         for (var key in data) {
             var vm = data[key];
             var labels = vm.USER_TEMPLATE.LABELS;
-            var exLabels = labels.split(",");
 
-            for (var key2 in exLabels) {
-                var label = exLabels[key2];
+            if(labels) {
+                var exLabels = labels.split(",");
 
-                // skip labels
-                if (config.skipLabels.indexOf(label) !== -1) {
-                    continue;
+                for (var key2 in exLabels) {
+                    var label = exLabels[key2];
+
+                    // skip labels
+                    if (config.skipLabels.indexOf(label) !== -1) {
+                        continue;
+                    }
+
+                    // create new group
+                    if (typeof groups[label] === "undefined") {
+                        groups[label] = [];
+                    }
+
+                    var hostname = getHostName(vm);
+
+                    // add host to group
+                    groups[label].push(hostname);
+
+                    // save host and its user template vars
+                    hosts[hostname] = vm.USER_TEMPLATE;
                 }
-
-                // create new group
-                if (typeof groups[label] === "undefined") {
-                    groups[label] = [];
-                }
-
-                var hostname = getHostName(vm);
-
-                // add host to group
-                groups[label].push(hostname);
-
-                // save host and its user template vars
-                hosts[hostname] = vm.USER_TEMPLATE;
             }
         }
 
