@@ -18,6 +18,7 @@ git clone https://github.com/FELDSAM-INC/ansible-one-inv.git
 cd ansible-one-inv
 npm install
 cp config.sample.js config.js
+nano config.js # configure
 cd -
 ```
 
