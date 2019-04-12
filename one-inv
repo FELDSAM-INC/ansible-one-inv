@@ -2,7 +2,7 @@
 
 const program = require("commander");
 const opennebula = require("opennebula");
-const config = require(process.cwd()+"/config");
+const config = require("./config");
 
 // define program
 program
