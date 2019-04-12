@@ -4,22 +4,40 @@ Dynamic Ansible inventory via OpenNebula API.
 
 This script use VM Labels to create *groups*. It can take VM Name, Custom User Template Var or IP as *hostname*.
 
-## Build
+## How to use
+
+### First of all, navigate to your ansible project directory and clone this repository
+
+```
+git clone https://github.com/FELDSAM-INC/ansible-one-inv.git
+```
+
+### Install dependencies and configure
 
 ```bash
+cd ansible-one-inv
 npm install
+cp config.sample.js config.js
+cd -
 ```
 
-## Configure
+### Test
 
-See [config.sample.js](https://github.com/feldsam-inc/ansible-one-inv/blob/master/config.sample.js).
+```
+./ansible-one-inv/one-inv --list
+```
 
-## Run
+### Configure ansible inventory
 
 ```bash
-./one-inv --list
-./one-inv --host <hostname>
+nano ansible.cfg
+
+...
+inventory = ./ansible-one-inv/one-inv
+...
 ```
+
+Now you can use dynamic inventory in your playbooks. Hosts will be grouped by OpenNebula Labels to Ansible Host Groups.
 
 ## Ansible
 
