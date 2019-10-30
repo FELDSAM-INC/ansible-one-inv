@@ -40,6 +40,10 @@ inventory = ./ansible-one-inv/one-inv
 
 Now you can use dynamic inventory in your playbooks. Hosts will be grouped by OpenNebula Labels to Ansible Host Groups.
 
+### Custom SSH ports
+
+I added support for define custom ssh port in vm user template. Just add variable `SSH_PORT` and ansible use it.
+
 ## Ansible
 
 See
