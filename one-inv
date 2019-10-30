@@ -90,6 +90,12 @@ function getAll(callback) {
 
                     // save host and its user template vars
                     hosts[hostname] = vm.USER_TEMPLATE;
+                    
+                    // set custom ssh port from VM USER_TEMPLATE var SSH_PORT
+                    sshPort = getSshPort(vm);
+                    if (sshPort) {
+                      hosts[hostname]["ansible_port"] = sshPort;
+                    }
                 }
             }
         }
@@ -116,6 +122,14 @@ function getHostName(vm) {
 
     // user vm name
     return vm.NAME;
+}
+
+function getSshPort(vm) {
+  if (vm.USER_TEMPLATE["SSH_PORT"] !== "undefined") {
+  	return vm.USER_TEMPLATE["SSH_PORT"];
+  }
+
+  return false;
 }
 
 function getVMIp(vm) {
