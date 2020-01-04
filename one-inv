@@ -1,150 +1,104 @@
-#!/usr/local/bin/node
+#!/usr/bin/env python
 
-const program = require("commander");
-const opennebula = require("opennebula");
-const config = require("./config");
+# -*- coding: utf-8 -*-
+# -------------------------------------------------------------------------- #
+# Copyright 2020, FeldHost™ (feldhost.net)                                   #
+#                                                                            #
+# Licensed under the Apache License, Version 2.0 (the "License"); you may    #
+# not use this file except in compliance with the License. You may obtain    #
+# a copy of the License at                                                   #
+#                                                                            #
+# http://www.apache.org/licenses/LICENSE-2.0                                 #
+#                                                                            #
+# Unless required by applicable law or agreed to in writing, software        #
+# distributed under the License is distributed on an "AS IS" BASIS,          #
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.   #
+# See the License for the specific language governing permissions and        #
+# limitations under the License.                                             #
+# -------------------------------------------------------------------------- #
 
-// define program
-program
-    .version('1.0.0')
-    .option('--list', 'prints all groups')
-    .option('--host [hostname]', 'prints host vars')
-    .parse(process.argv);
+import sys
+import argparse
+import json
+import pyone
+import functions
+import config
 
-// connect to one
-var one = new opennebula(config.user+':'+config.token, config.address);
+# ----------------------------
+# Define parser
+# ----------------------------
+parser = argparse.ArgumentParser(description='OpenNebula Ansible Dynamic Inventory')
 
-if(program.list) {
-    getAll(function(err, groups, hosts) {
-        if(err) {
-            console.error(err);
-            process.exit(1);
-        }
+parser.add_argument('--list', help='Get list of all groups', action='store_true')
+parser.add_argument('--host', help='Get specific host vars')
 
-        groups["_meta"] = {};
-        groups["_meta"]["hostvars"] = hosts;
+# -------------------------------------
+# Print help if no args passed
+# -------------------------------------
+if len(sys.argv[1:]) == 0:
+    parser.print_help()
+    parser.exit()
 
-        console.log(JSON.stringify(groups, null, 2));
-    })
-}
+# -------------------------------------
+# Parse args and proceed with execution
+# -------------------------------------
+args = parser.parse_args()
 
-if(program.host) {
-    getAll(function(err, groups, hosts) {
-        if(err) {
-            console.error(err);
-            process.exit(1);
-        }
+# -----------------------
+# Connect to OpenNebula
+# -----------------------
+one = pyone.OneServer(config.ONE['address'], session='%s:%s' % (config.ONE['username'], config.ONE['password']))
 
-        // check if host exists
-        if(typeof hosts[program.host] === "undefined") {
-            console.error("Host with name %s does't exists!", program.host);
-            process.exit(1);
-        }
+# Init vars
+groups = {}
+groups['All'] = []
+hosts = {}
 
-        console.log(JSON.stringify(hosts[program.host], null, 2));
-    })
-}
+# get hosts (VMs)
+vm_pool = one.vmpool.infoextended(-2, -1, -1, 3)
 
-if(!program.list && !program.host) {
-    program.help();
-}
+# iterate over hosts
+for vm in vm_pool.VM:
+    labels = []
+    if vm.USER_TEMPLATE.get('LABELS'):
+        labels = vm.USER_TEMPLATE.get('LABELS').split(',')
 
-function getAll(callback) {
-    var groups = {};
-    var hosts  = {};
+    # get hostname
+    hostname = functions.get_hostname(vm)
 
-    // get all VMs
-    one.getVMs(function (err, data) {
-        if (err) {
-            return callback(err);
-        }
+    for label in labels:
+        # skips hosts by excluded labels
+        if label in config.SKIP_LABELS:
+            continue
 
-        if(Object.keys(data).length === 0 || typeof data[0] === "undefined") {
-           return callback("No VMs found!");
-        }
+        # create new group if doesn't exist
+        if not groups.get(label):
+            groups[label] = []
 
-        for (var key in data) {
-            var vm = data[key];
-            var labels = vm.USER_TEMPLATE.LABELS;
+        # add host to group
+        groups[label].append(hostname)
 
-            if(labels) {
-                var exLabels = labels.split(",");
+    # add host to default group
+    groups['All'].append(hostname)
 
-                for (var key2 in exLabels) {
-                    var label = exLabels[key2];
+    # save host vars
+    hosts[hostname] = vm.USER_TEMPLATE
 
-                    // skip labels
-                    if (config.skipLabels.indexOf(label) !== -1) {
-                        continue;
-                    }
+    # custom ssh port
+    ssh_port = functions.get_ssh_port(vm)
+    if ssh_port:
+        hosts[hostname]['ansible_port'] = ssh_port
 
-                    // create new group
-                    if (typeof groups[label] === "undefined") {
-                        groups[label] = [];
-                    }
+# prepare final groups data
+groups['_meta'] = {}
+groups['_meta']['hostvars'] = hosts
 
-                    var hostname = getHostName(vm);
+if args.list:
+    print(json.dumps(groups, sort_keys=False, indent=4, separators=(',', ': ')))
 
-                    // add host to group
-                    groups[label].push(hostname);
+if args.host:
+    if not args.host in hosts:
+        print('Host with name %s does\'t exists!' % args.host)
+        exit(1)
 
-                    // save host and its user template vars
-                    hosts[hostname] = vm.USER_TEMPLATE;
-                    
-                    // set custom ssh port from VM USER_TEMPLATE var SSH_PORT
-                    sshPort = getSshPort(vm);
-                    if (sshPort) {
-                      hosts[hostname]["ansible_port"] = sshPort;
-                    }
-                }
-            }
-        }
-
-        if(Object.keys(groups).length === 0) {
-            return callback("No VMs with labels found (except skiped one)!");
-        }
-
-        callback(null, groups, hosts);
-    });
-}
-
-function getHostName(vm) {
-    // get hostname key
-    if (!config.useVmName && config.hostnameUserTemplateVar !== "" && typeof vm.USER_TEMPLATE[config.hostnameUserTemplateVar] !== "undefined") {
-        return vm.USER_TEMPLATE[config.hostnameUserTemplateVar];
-    }
-
-    // not use vm name but hostname user template var is not defined or empty
-    // so get IP
-    if (!config.useVmName) {
-        return getVMIp(vm);
-    }
-
-    // user vm name
-    return vm.NAME;
-}
-
-function getSshPort(vm) {
-  if (vm.USER_TEMPLATE["SSH_PORT"] !== "undefined") {
-  	return vm.USER_TEMPLATE["SSH_PORT"];
-  }
-
-  return false;
-}
-
-function getVMIp(vm) {
-    var nic = vm.TEMPLATE.NIC;
-
-    if(typeof nic.NETWORK_ID !== "undefined") {
-        nic = Array(nic);
-    }
-
-    for(k in nic) {
-        var net = nic[k];
-
-        // return first
-        return net.IP;
-    }
-
-    return false;
-}
+    print(json.dumps(hosts[args.host], sort_keys=False, indent=4, separators=(',', ': ')))
