@@ -1,18 +1,51 @@
-# ansible-one-inv
+# OpenNebula Ansible Dynamic Inventory
 
-Dynamic Ansible inventory via OpenNebula API.
+## Description
 
 This script use VM Labels to create *groups*. It can take VM Name, Custom User Template Var or IP as *hostname*.
 
+See
+
+- http://docs.ansible.com/ansible/intro_dynamic_inventory.html
+- http://docs.ansible.com/ansible/dev_guide/developing_inventory.html
+
+## Development
+
+To contribute bug patches or new features, you can use the github Pull Request model. It is assumed that code and documentation are contributed under the Apache License 2.0.
+
+More info:
+
+* [How to Contribute](http://opennebula.org/addons/contribute/)
+* Support: [OpenNebula user forum](https://forum.opennebula.org/c/support)
+* Development: [OpenNebula developers forum](https://forum.opennebula.org/c/development)
+* Issues Tracking: GitHub issues (https://github.com/FELDSAM-INC/ansible-one-inv/issues)
+
+## Authors
+
+* Leader: Kristian Feldsam (feldsam@feldhost.net)
+
+## Support
+
+[FeldHost™ as OpenNebula Systems Service Partner](https://www.feldhost.net/products/opennebula) offers design, implementation, operation and management of a cloud solution based on OpenNebula.
+
+## Compatibility
+
+This add-on is developed and tested with:
+- OpenNebula 5.8+
+
+## Requirements
+
+Python module `pyone`
+
 ## How to use
 
-### First of all, navigate to your ansible project directory and clone this repository
+First of all, navigate to your ansible project directory and clone this repository.
 
 ```
 git clone https://github.com/FELDSAM-INC/ansible-one-inv.git
 ```
 
-### Install dependencies and configure
+Install dependencies and configure.
 
 ```bash
 cd ansible-one-inv
@@ -22,7 +55,7 @@ nano config.py # configure
 cd -
 ```
 
-**Sample config:**
+Sample config:
 ```
 # OpenNebula XML-RPC API connection details
 ONE = {
@@ -46,13 +79,13 @@ SKIP_LABELS = [
 ]
 ```
 
-### Test
+Test
 
 ```
 ./ansible-one-inv/one-inv --list
 ```
 
-### Configure ansible inventory
+Configure ansible inventory
 
 ```bash
 nano ansible.cfg
@@ -77,9 +110,3 @@ One VM can be in more groups if have more labels.
 There is support to define custom ssh port in VM USER_TEMPLATE.  
 Just add variable `SSH_PORT` and Ansible use it.
 
-## Ansible
-
-See
-
-- http://docs.ansible.com/ansible/intro_dynamic_inventory.html
-- http://docs.ansible.com/ansible/dev_guide/developing_inventory.html
