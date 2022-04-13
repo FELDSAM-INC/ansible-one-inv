@@ -1,5 +1,9 @@
 # OpenNebula Ansible Dynamic Inventory
 
+# This inventory plugin is part of ansible community collection now
+
+https://docs.ansible.com/ansible/latest/collections/community/general/opennebula_inventory.html
+
 ## Description
 
 This script use VM Labels to create *groups*. It can take VM Name, Custom User Template Var or IP as *hostname*.
